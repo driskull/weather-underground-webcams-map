@@ -1,0 +1,123 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=7, IE=9" />
+        <!--The viewport meta tag is used to improve the presentation and behavior
+        of the samples on iOS devices-->
+        <meta name="viewport" content="initial-scale=1, maximum-scale=1,user-scalable=no"
+        />
+        <title></title>
+        <link rel="stylesheet" type="text/css" href="http://serverapi.arcgisonline.com/jsapi/arcgis/3.3/js/dojo/dijit/themes/soria/soria.css">
+        <link rel="stylesheet" type="text/css" href="http://serverapi.arcgisonline.com/jsapi/arcgis/3.3/js/esri/css/esri.css">
+        <style type="text/css">
+            html, body, #map {
+                height:100%;
+                width:100%;
+                margin:0;
+                padding:0;
+            }
+            body {
+                background-color:#FFF;
+                overflow:hidden;
+                font-family:"Trebuchet MS";
+            }
+        </style>
+        <script type="text/javascript">
+            // host path regular expression
+            var pathRegex = new RegExp(/\/[^\/]+$/);
+            var locationPath = location.pathname.replace(pathRegex, '');
+            // Dojo Config
+            var dojoConfig = {
+                parseOnLoad: true,
+                packages: [
+                {
+                    name: "modules",
+                    location: locationPath + 'src'
+                }]
+            };
+        </script>
+        <script type="text/javascript" src="http://serverapi.arcgisonline.com/jsapi/arcgis/?v=3.3"></script>
+        <script type="text/javascript">
+        require([
+            "dojo/ready",
+            "dojo/_base/connect",
+            "modules/wu_webcam",
+            "esri",
+            "esri/map",
+            "esri/IdentityManager",
+            "esri/arcgis/utils"
+        ],
+        function (ready, connect, Webcam, esri) {
+
+            var map;
+
+            function resizeMap() {
+                map.resize();
+                map.reposition();
+            }
+
+            function init(){
+                var webcams = new Webcam({
+                    map: map,
+                    key: 'a2e05250bcb7ae38',
+                    title: 'Webcams',
+                    id: 'wu_webcam'
+                });
+                connect.connect(map, "onExtentChange", function(){
+                    webcams.update();
+                });
+                var extent = esri.geometry.Extent({
+                    xmax: -7856121.865955909,
+                    xmin: -8626607.111070449,
+                    ymax: 5442390.7902907785,
+                    ymin: 4729386.19044669,
+                    spatialReference: map.extent.spatialReference
+                });
+                map.setExtent(extent);
+            }
+
+            ready(function () {
+                esri.config.defaults.io.proxyUrl = "/arcgisserver/apis/javascript/proxy/proxy.ashx";
+                //This service is for development and testing purposes only. We recommend that you create your own geometry service for use within your applications.
+                esri.config.defaults.geometryService = new esri.tasks.GeometryService("http://tasks.arcgisonline.com/ArcGIS/rest/services/Geometry/GeometryServer");
+
+                var urlObject = esri.urlToObject(document.location.href);
+                var webmap = "6e03e8c26aad4b9c92a87c1063ddb0e3";
+                var bingMapsKey = "Enter your Bing Maps Key";
+                if (urlObject.query) {
+                    webmap = urlObject.query.webmap;
+                    bingMapsKey = urlObject.query.bingMapsKey;
+                }
+
+                var mapDeferred = esri.arcgis.utils.createMap(webmap, "map", {
+                    mapOptions: {
+                        slider: true,
+                        sliderStyle: 'small'
+                    },
+                    bingMapsKey: bingMapsKey,
+                    geometryServiceURL: "http://tasks.arcgisonline.com/ArcGIS/rest/services/Geometry/GeometryServer"
+                });
+                mapDeferred.addCallback(function (response) {
+                    map = response.map;
+                    if(map.loaded){
+                        init();
+                    }
+                    else{
+                        connect.connect(map, "onload", init);
+                    }
+                    //resize the map when the browser resizes
+                    connect.connect(dijit.byId('map'), 'resize', map, map.resize);
+                    connect.connect(window, "onresize", resizeMap);
+                });
+                mapDeferred.addErrback(function (error) {
+                    console.log("Map creation failed" + error.toString());
+                });
+            });
+        });
+        </script>
+    </head>
+    <body dir="" class="soria">
+        <div id="map"></div>
+    </body>
+</html>
